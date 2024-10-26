@@ -5,6 +5,8 @@ import re
 import pandas as pd
 from openpyxl.styles import Font, Alignment
 import os
+import logging
+
 
 class PDFProcessor:
     def __init__(self):

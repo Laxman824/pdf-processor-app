@@ -1,404 +1,427 @@
-#excel conversion working good 3 version with detection of horizontal line wokring PERFECT TO SUBMIT
-
-import fitz
-import re
-import pandas as pd
-from openpyxl.styles import Font, Alignment
+import streamlit as st
+import tempfile
 import os
 import logging
+from pathlib import Path
+import pandas as pd
+import fitz
+import time
+import sys
+from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
+from streamlit_lottie import st_lottie
+import json
 
+# Add the current directory to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
-class PDFProcessor:
-    def __init__(self):
-        self.excel_data = []
-        self.current_page = 2
-        logging.basicConfig(level=logging.DEBUG)
-        self.logger = logging.getLogger(__name__)
+# Import PDFProcessor class
+from PDFProcessor import PDFProcessor
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    def find_horizontal_lines(self, page):
-        """Find horizontal lines in the page that might indicate footnote sections"""
-        # Get page dimensions
-        page_width = page.rect.width
-        page_height = page.rect.height
+# Lottie animations as JSON
+LOTTIE_ANIMATION = {
+    "v": "5.7.4",
+    "fr": 30,
+    "ip": 0,
+    "op": 60,
+    "w": 512,
+    "h": 512,
+    "nm": "Loading Animation",
+    "ddd": 0,
+    "assets": [],
+    "layers": [{
+        "ddd": 0,
+        "ind": 1,
+        "ty": 4,
+        "nm": "Circle",
+        "sr": 1,
+        "ks": {
+            "o": {"a": 0, "k": 100},
+            "r": {
+                "a": 1,
+                "k": [{
+                    "i": {"x": [0.833], "y": [0.833]},
+                    "o": {"x": [0.167], "y": [0.167]},
+                    "t": 0,
+                    "s": [0]
+                }, {
+                    "t": 60,
+                    "s": [360]
+                }]
+            },
+            "p": {"a": 0, "k": [256, 256]},
+            "a": {"a": 0, "k": [0, 0, 0]},
+            "s": {"a": 0, "k": [100, 100, 100]}
+        },
+        "shapes": [{
+            "ty": "el",
+            "p": {"a": 0, "k": [0, 0]},
+            "s": {"a": 0, "k": [200, 200]},
+            "d": 1,
+            "nm": "Circle Path"
+        }, {
+            "ty": "st",
+            "c": {"a": 0, "k": [0.2, 0.5, 1]},
+            "o": {"a": 0, "k": 100},
+            "w": {"a": 0, "k": 20},
+            "lc": 2,
+            "lj": 1,
+            "ml": 4,
+            "nm": "Stroke"
+        }, {
+            "ty": "tm",
+            "s": {"a": 0, "k": 0},
+            "e": {"a": 0, "k": 25},
+            "o": {"a": 0, "k": 0},
+            "nm": "Trim Paths"
+        }]
+    }]
+}
 
-        # Get all drawings from the page
-        paths = page.get_drawings()
-        horizontal_lines = []
+# Custom CSS with improved styling
+def local_css():
+    st.markdown("""
+        <style>
+        .stApp {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .main {
+            padding: 2rem;
+            border-radius: 0.5rem;
+        }
+        .stButton>button {
+            width: 100%;
+            border-radius: 0.5rem;
+            height: 3rem;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .stButton>button:hover {
+            background-color: #45a049;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            border: 2px dashed #4CAF50;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            margin: 1rem 0;
+            background-color: #f8f9fa;
+        }
+        .stats-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .success-message {
+            padding: 1rem;
+            background-color: #d4edda;
+            color: #155724;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            animation: fadeIn 0.5s ease-in;
+        }
+        .error-message {
+            padding: 1rem;
+            background-color: #f8d7da;
+            color: #721c24;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .metric-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-        for path in paths:
-            # Check if it's a line
-            if 'rect' in path:
-                rect = path['rect']
-                y0, y1 = rect[1], rect[3]
-                x0, x1 = rect[0], rect[2]
+def initialize_session_state():
+    if 'processing_history' not in st.session_state:
+        st.session_state.processing_history = []
+    if 'total_files_processed' not in st.session_state:
+        st.session_state.total_files_processed = 0
+    if 'successful_conversions' not in st.session_state:
+        st.session_state.successful_conversions = 0
+    if 'failed_conversions' not in st.session_state:
+        st.session_state.failed_conversions = 0
 
-                # Check if it's horizontal (y coordinates are close)
-                if abs(y1 - y0) < 2:  # Allow small deviation
-                    # Check if line is in bottom third of page
-                    if y0 > (page_height * 0.6):
-                        # Check if line length is appropriate (25-35% of page width)
-                        line_length = x1 - x0
-                        length_ratio = line_length / page_width
+def display_statistics():
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-value">{}</div>
+                <div class="metric-label">Files Processed</div>
+            </div>
+            """.format(st.session_state.total_files_processed),
+            unsafe_allow_html=True
+        )
+    
+    with col2:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-value">{}</div>
+                <div class="metric-label">Successful</div>
+            </div>
+            """.format(st.session_state.successful_conversions),
+            unsafe_allow_html=True
+        )
+    
+    with col3:
+        st.markdown(
+            """
+            <div class="metric-card">
+                <div class="metric-value">{}</div>
+                <div class="metric-label">Failed</div>
+            </div>
+            """.format(st.session_state.failed_conversions),
+            unsafe_allow_html=True
+        )
 
-                        if 0.25 <= length_ratio <= 0.35:
-                            horizontal_lines.append({
-                                'bbox': (x0, y0, x1, y1),
-                                'is_separator': True
-                            })
-
-        self.logger.debug(f"Page {self.current_page}: Found {len(horizontal_lines)} horizontal lines")
-        return horizontal_lines
-
-    def validate_footnote_format(self, text):
-        """Validate if text follows footnote format"""
-        # Pattern for footnote: number followed by text
-        footnote_pattern = r'^\d+\s+[A-Z]'  # Number followed by space and capital letter
-        return bool(re.match(footnote_pattern, text.strip()))
-
-    def find_footnote_section(self, page):
-        """Find and validate footnote section"""
-        lines = self.find_horizontal_lines(page)
-        if not lines:
-            self.logger.debug(f"Page {self.current_page}: No horizontal lines found")
-            return None
-
-        # Sort lines by y-position (bottom to top)
-        lines.sort(key=lambda x: x['bbox'][1], reverse=True)
-
-        for line in lines:
-            # Check text below the line
-            below_line_rect = fitz.Rect(
-                0, line['bbox'][1],
-                page.rect.width, line['bbox'][1] + 50
-            )
-            text_below = page.get_text("text", clip=below_line_rect).strip()
-
-            if text_below and self.validate_footnote_format(text_below):
-                return {
-                    'separator_line': line['bbox'],
-                    'section_start': line['bbox'][1],
-                    'text_below': text_below
+    if st.session_state.total_files_processed > 0:
+        success_rate = (st.session_state.successful_conversions / 
+                       st.session_state.total_files_processed * 100)
+        
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=success_rate,
+            title={'text': "Success Rate"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "#4CAF50"},
+                'steps': [
+                    {'range': [0, 50], 'color': "#ffebee"},
+                    {'range': [50, 80], 'color': "#e8f5e9"},
+                    {'range': [80, 100], 'color': "#c8e6c9"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
                 }
+            }
+        ))
+        
+        fig.update_layout(height=300)
+        st.plotly_chart(fig, use_container_width=True)
 
-        return None
+def display_processing_history():
+    if st.session_state.processing_history:
+        st.subheader("Processing History")
+        
+        # Convert history to DataFrame
+        history_df = pd.DataFrame(st.session_state.processing_history)
+        
+        # Style the dataframe
+        def color_status(val):
+            color = '#d4edda' if val == 'Success' else '#f8d7da'
+            return f'background-color: {color}'
+        
+        styled_df = history_df.style.applymap(color_status, subset=['Status'])
+        st.dataframe(styled_df, use_container_width=True)
 
-
-
-    def extract_footnotes_and_refs(self, page):
-        """Enhanced footnote extraction with improved detection"""
-        footnotes = {}
-        main_footnote_refs = []
-        footnote_markers = []
-
-        # Get page dimensions for position analysis
-        page_height = page.rect.height
-        page_width = page.rect.width
-
-        # Get all blocks of text
-        blocks = page.get_text("dict")["blocks"]
-
-        # First pass: Identify all potential references in the main text
-        potential_refs = []
-        for block in blocks:
-            block_y = block["bbox"][1]  # Y-position of block
-
-            for line in block.get("lines", []):
-                for span in line.get("spans", []):
-                    # Check if span could be a reference (number and smaller font)
-                    if (span["text"].strip().isdigit() and
-                        self.is_smaller_font(span, line.get("spans", []))):
-
-                        # Store reference with its position
-                        potential_refs.append({
-                            "text": span["text"],
-                            "y_pos": span["bbox"][1],
-                            "is_main_text": block_y < (page_height * 0.7)  # Consider position on page
+def main():
+    # Initialize session state
+    initialize_session_state()
+    
+    # Apply custom CSS
+    local_css()
+    
+    # Sidebar
+    with st.sidebar:
+        st.title("⚙️ Settings")
+        st.markdown("---")
+        
+        # Theme selection
+        theme = st.selectbox(
+            "Choose Theme",
+            ["Light", "Dark"],
+            key="theme"
+        )
+        
+        # Display mode
+        display_mode = st.radio(
+            "Display Mode",
+            ["Compact", "Detailed"]
+        )
+        
+        st.markdown("---")
+        st.markdown("### About")
+        st.markdown("""
+        This app processes PDF documents and extracts content with footnotes 
+        into organized Excel files. Perfect for document analysis and content extraction.
+        """)
+    
+    # Main content
+    st.title("📄 PDF Footnote Processor")
+    st.markdown("---")
+    
+    # Display statistics
+    display_statistics()
+    
+    # File upload section
+    st.markdown(
+        """
+        <div class="upload-section">
+            <h3>Upload Your PDF</h3>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    uploaded_file = st.file_uploader(
+        "",  # Empty label since we're using custom HTML
+        type=['pdf'],
+        help="Upload a PDF file to process"
+    )
+    
+    if uploaded_file:
+        # File details section
+        with st.expander("📑 File Details", expanded=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"**Filename:** {uploaded_file.name}")
+                st.markdown(f"**Size:** {uploaded_file.size / 1024:.2f} KB")
+            with col2:
+                st.markdown(f"**Type:** {uploaded_file.type}")
+                st.markdown(f"**Uploaded at:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # Process button
+        if st.button("🚀 Process PDF", type="primary"):
+            with st.spinner("Processing your PDF..."):
+                # Show processing animation
+                st_lottie(LOTTIE_ANIMATION, height=200, key="processing")
+                
+                try:
+                    # Save uploaded file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                        tmp_file.write(uploaded_file.getbuffer())
+                        temp_path = tmp_file.name
+                    
+                    # Process the PDF
+                    excel_path = process_pdf(temp_path)
+                    
+                    if excel_path and os.path.exists(excel_path):
+                        # Update statistics
+                        st.session_state.total_files_processed += 1
+                        st.session_state.successful_conversions += 1
+                        
+                        # Add to history
+                        st.session_state.processing_history.append({
+                            'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'Filename': uploaded_file.name,
+                            'Status': 'Success',
+                            'Size': f"{uploaded_file.size / 1024:.2f} KB"
                         })
-
-        # Second pass: Find footnotes by looking for numbered text at bottom of page
-        footnote_section_started = False
-        current_footnote = ""
-        current_footnote_num = None
-        last_y_position = 0
-
-        # Sort blocks by vertical position
-        sorted_blocks = sorted(blocks, key=lambda x: x["bbox"][1])
-
-        for block in sorted_blocks:
-            block_y = block["bbox"][1]
-            block_text = ""
-
-            # Combine all text in block
-            for line in block.get("lines", []):
-                for span in line.get("spans", []):
-                    span_text = span["text"].strip()
-
-                    # Check if this might be a footnote number
-                    if (span_text.isdigit() and
-                        block_y > (page_height * 0.6) and  # In bottom portion of page
-                        not current_footnote_num):
-
-                        # Verify this number exists in our references
-                        if any(ref["text"] == span_text for ref in potential_refs):
-                            current_footnote_num = span_text
-                            footnote_section_started = True
-                            continue
-
-                    if footnote_section_started:
-                        current_footnote += span_text + " "
-
-                    # Check for next footnote number
-                    if (current_footnote and span_text.isdigit() and
-                        any(ref["text"] == span_text for ref in potential_refs)):
-                        if current_footnote_num:
-                            footnotes[current_footnote_num] = current_footnote.strip()
-                        current_footnote_num = span_text
-                        current_footnote = ""
-
-            # Add spacing between blocks in footnote
-            if footnote_section_started and current_footnote:
-                current_footnote += " "
-
-        # Save last footnote
-        if current_footnote_num and current_footnote:
-            footnotes[current_footnote_num] = current_footnote.strip()
-
-        # Separate references into main text refs and footnote markers
-        for ref in potential_refs:
-            if ref["is_main_text"]:
-                # Find the span in original blocks
-                for block in blocks:
-                    for line in block.get("lines", []):
-                        for span in line.get("spans", []):
-                            if span["text"] == ref["text"] and ref["is_main_text"]:
-                                main_footnote_refs.append(span)
-            else:
-                footnote_markers.append(ref)
-
-        # Validation: Check if we found footnotes for all references
-        missing_footnotes = []
-        for ref in main_footnote_refs:
-            if ref["text"] not in footnotes:
-                missing_footnotes.append(ref["text"])
-
-        if missing_footnotes:
-            self.logger.warning(f"Missing footnotes for references: {missing_footnotes}")
-
-            # Second attempt to find missing footnotes
-            for ref_num in missing_footnotes:
-                # Look for text pattern: number followed by text
-                pattern = f"{ref_num}\\s+([^0-9]+?)(?=\\d|$)"
-                page_text = page.get_text()
-                matches = re.finditer(pattern, page_text, re.DOTALL)
-
-                for match in matches:
-                    if match.group(1).strip():
-                        footnotes[ref_num] = match.group(1).strip()
-                        break
-
-        self.logger.info(f"Found {len(main_footnote_refs)} references and {len(footnotes)} footnotes")
-        return footnotes, main_footnote_refs, footnote_markers
-
-    def is_smaller_font(self, span, line_spans):
-        """Improved font size comparison"""
-        if not line_spans:
-            return False
-
-        # Get average size of normal text
-        sizes = [s["size"] for s in line_spans if not s["text"].strip().isdigit()]
-        if not sizes:
-            return False
-
-        avg_font_size = sum(sizes) / len(sizes)
-        return span["size"] < avg_font_size * 0.85  # Slightly more lenient threshold
-
-    def organize_content(self, page, footnotes, main_footnote_refs):
-        """Enhanced content organization"""
-        blocks = page.get_text("dict")["blocks"]
-        current_text = []
-        current_paragraph = []
-
-        for block in blocks:
-            for line in block.get("lines", []):
-                line_text = []
-                ref_found = False
-
-                for span in line.get("spans", []):
-                    # Check if this span is a footnote reference
-                    is_ref = any(ref["text"] == span["text"] for ref in main_footnote_refs)
-
-                    if is_ref:
-                        # Add text before reference
-                        if line_text:
-                            current_text.extend(line_text)
-                            line_text = []
-
-                        # Get the actual footnote text
-                        footnote_num = span["text"]
-                        if footnote_num in footnotes:
-                            # Add the complete paragraph with reference
-                            if current_text:
-                                full_text = " ".join(current_text) + " " + footnote_num
-                                self.excel_data.append([full_text, ""])
-                                current_text = []
-
-                            # Add the footnote in next row
-                            self.excel_data.append(["", f"{footnote_num}. {footnotes[footnote_num]}"])
-                            ref_found = True
-                        else:
-                            # If footnote not found, still include the reference number
-                            line_text.append(span["text"])
-                            self.logger.warning(f"Missing footnote for reference {footnote_num}")
-                    else:
-                        line_text.append(span["text"])
-
-                if line_text:
-                    current_text.extend(line_text)
-
-                # Add line break between lines if needed
-                if len(line.get("spans", [])) > 0:  # If line had content
-                    current_text.append(" ")
-
-            # End of block - add accumulated text if no reference was found
-            if current_text and not ref_found:
-                text = " ".join(current_text).strip()
-                if text:
-                    self.excel_data.append([text, ""])
-                current_text = []
-
-
-    def process_page(self, page):
-        """Process single page content with improved footnote handling"""
-        # First extract footnotes and references
-        footnotes, main_footnote_refs, footnote_markers = self.extract_footnotes_and_refs(page)
-
-        # Debug print
-        print("\nExtracted Footnotes:")
-        for num, text in footnotes.items():
-            print(f"Footnote {num}: {text}")
-
-        print("\nMain References:")
-        for ref in main_footnote_refs:
-            print(f"Reference: {ref['text']}")
-
-        # Process and organize content
-        self.organize_content(page, footnotes, main_footnote_refs)
-
-    # Add this helper method for debugging
-    def print_text_block(self, text_block):
-        """Debug helper to print text block structure"""
-        print("\nText Block Structure:")
-        for i, (text, props) in enumerate(text_block):
-            print(f"{i}: {text} (Font size: {props.get('size', 'N/A')})")
-
-
-    def create_excel_file(self, input_pdf_path):
-            """Create formatted Excel file"""
-            output_path = input_pdf_path.replace('.pdf', '_Final.xlsx')
-
-            # Create DataFrame
-            df = pd.DataFrame(self.excel_data, columns=['Content', 'Footnotes'])
-
-            # Write to Excel with formatting
-            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False, sheet_name='Processed Content')
-
-                # Get worksheet
-                worksheet = writer.sheets['Processed Content']
-
-                # Format columns
-                worksheet.column_dimensions['A'].width = 60
-                worksheet.column_dimensions['B'].width = 40
-
-                # Format cells
-                for row in range(2, len(self.excel_data) + 2):
-                    cell_a = worksheet.cell(row=row, column=1)
-                    cell_b = worksheet.cell(row=row, column=2)
-
-                    # Basic formatting
-                    for cell in [cell_a, cell_b]:
-                        cell.alignment = Alignment(wrap_text=True,
-                                                vertical='top',
-                                                horizontal='left')
-
-                    # Special formatting for page markers
-                    if cell_a.value and isinstance(cell_a.value, str) and cell_a.value.startswith('****'):
-                        cell_a.font = Font(bold=True)
-                        cell_a.alignment = Alignment(horizontal='center')
-
-                    # Format footnotes
-                    if cell_b.value:
-                        cell_b.font = Font(italic=True)
-
-            print(f"\nExcel file created: {output_path}")
-            return output_path
-
-
-    def validate_footnote_matching(self, footnotes, main_footnote_refs):
-        """Validate footnote matching and print diagnostic information"""
-        print("\nValidating Footnote Matching:")
-
-        for ref in main_footnote_refs:
-            ref_num = ref["text"]
-            if ref_num in footnotes:
-                print(f"\nReference {ref_num}:")
-                print(f"Position in text: {ref.get('bbox', 'Unknown position')}")
-                print(f"Matched footnote: {footnotes[ref_num]}")
-            else:
-                print(f"\nWarning: No footnote found for reference {ref_num}")
-
-        # Check for unmatched footnotes
-        ref_numbers = {ref["text"] for ref in main_footnote_refs}
-        for footnote_num in footnotes:
-            if footnote_num not in ref_numbers:
-                print(f"\nWarning: Footnote {footnote_num} has no matching reference")
-
-    def process_pdf(self, file_path):
-        """Main processing function"""
-        try:
-            print(f"Processing PDF: {file_path}")
-            doc = fitz.open(file_path)
-
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                print(f"\nProcessing page {page_num + 1}")
-
-                # Use your extraction method
-                footnotes, main_footnote_refs, footnote_markers = self.extract_footnotes_and_refs(page)
-                print(f"Found {len(footnotes)} footnotes and {len(main_footnote_refs)} references")
-
-                # Process and organize content for Excel
-                self.organize_content(page, footnotes, main_footnote_refs)
-
-                # Add page marker
-                self.excel_data.append([f"**** Page {self.current_page} ****", ""])
-                self.current_page += 1
-
-            # Create Excel file
-            self.create_excel_file(file_path)
-            doc.close()
-
-        except Exception as e:
-            print(f"Error processing PDF: {str(e)}")
-            raise
-
-    # Example usage:
-    def process_page(self, page):
-        """Enhanced page processing with validation"""
-        footnotes, main_footnote_refs, footnote_markers = self.extract_footnotes_and_refs(page)
-
-        # Validate footnote matching
-        self.validate_footnote_matching(footnotes, main_footnote_refs)
-
-        # Process content with validated footnotes
-        self.organize_content(page, footnotes, main_footnote_refs)
-
-def process_pdf_file(file_path):
-    """Process a PDF file and create Excel output"""
-    processor = PDFProcessor()
-    processor.process_pdf(file_path)
+                        
+                        # Read the Excel file
+                        df = pd.read_excel(excel_path)
+                        
+                        # Success message with animation
+                        st.markdown(
+                            """
+                            <div class="success-message">
+                                ✅ PDF processed successfully!
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+                        
+                        # Results section
+                        st.markdown("### Results")
+                        
+                        # Preview tabs
+                        tab1, tab2 = st.tabs(["📊 Preview", "📈 Statistics"])
+                        
+                        with tab1:
+                            st.dataframe(df.head(10), use_container_width=True)
+                            
+                        with tab2:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.metric("Total Rows", len(df))
+                            with col2:
+                                st.metric("Footnotes Found", len(df[df['Footnotes'].notna()]))
+                        
+                        # Download section
+                        st.markdown("### Download")
+                        with open(excel_path, "rb") as file:
+                            excel_data = file.read()
+                            st.download_button(
+                                label="📥 Download Excel File",
+                                data=excel_data,
+                                file_name=f"{uploaded_file.name.replace('.pdf', '_Final.xlsx')}",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        
+                        # Cleanup
+                        try:
+                            os.remove(temp_path)
+                            os.remove(excel_path)
+                        except Exception as e:
+                            logger.error(f"Error cleaning up temporary files: {str(e)}")
+                    
+                except Exception as e:
+                    # Update statistics
+                    st.session_state.total_files_processed += 1
+                    st.session_state.failed_conversions += 1
+                    
+                    # Add to history
+                    st.session_state.processing_history.append({
+                        'Timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'Filename': uploaded_file.name,
+                        'Status': 'Failed',
+                        'Size': f"{uploaded_file.size / 1024:.2f} KB"
+                    })
+                    
+                    st.markdown(
+                        f"""
+                        <div class="error-message">
+                            ❌ An error occurred during processing: {str(e)}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+    
+    # Display processing history
+    if display_mode == "Detailed":
+        display_processing_history()
 
 if __name__ == "__main__":
-    pdf_path = "/content/MC371.pdf"  # Replace with actual path
-    process_pdf_file(pdf_path)
+    main()

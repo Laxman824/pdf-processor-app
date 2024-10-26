@@ -2,3 +2,7 @@ streamlit
 PyMuPDF
 pandas
 openpyxl
+pathlib
+plotly
+streamlit-lottie
+requests

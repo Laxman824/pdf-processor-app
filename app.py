@@ -16,6 +16,95 @@ logger = logging.getLogger(__name__)
 # Initialize session state for theme
 if 'theme' not in st.session_state:
     st.session_state.theme = "light"
+def get_base64_of_file(file_path):
+    """Get base64 encoded version of a local file"""
+    return base64.b64encode(Path(file_path).read_bytes()).decode()
+
+def set_page_icon(gif_path):
+    """Set page icon using local GIF"""
+    base64_gif = get_base64_of_file(gif_path)
+    return f"data:image/gif;base64,{base64_gif}"
+
+# In your main function
+def main():
+    # Set the icon using local GIF
+    icon_path = "assets/pdf.gif"  # Path to your GIF
+    page_icon = set_page_icon(icon_path)
+
+    st.set_page_config(
+        page_title="PDF Footnote Processor",
+        page_icon=page_icon,
+        layout="wide"
+    )
+class IconManager:
+    def __init__(self, gif_path):
+        self.gif_path = gif_path
+        self._validate_path()
+
+    def _validate_path(self):
+        """Validate that the GIF file exists"""
+        if not os.path.exists(self.gif_path):
+            raise FileNotFoundError(f"GIF file not found at: {self.gif_path}")
+
+    def get_base64(self):
+        """Get base64 encoded version of the GIF"""
+        return base64.b64encode(Path(self.gif_path).read_bytes()).decode()
+
+    def get_page_icon(self):
+        """Get data URL for page icon"""
+        return f"data:image/gif;base64,{self.get_base64()}"
+
+    def get_html_img(self, size=30):
+        """Get HTML img tag with the GIF"""
+        return f"""
+            <img src="data:image/gif;base64,{self.get_base64()}" 
+                 width="{size}px" 
+                 height="{size}px"
+                 style="object-fit: contain;"/>
+        """
+
+def main():
+    # Initialize icon manager
+    try:
+        icon_manager = IconManager("assets/pdf_icon.gif")
+        
+        # Set page config with GIF icon
+        st.set_page_config(
+            page_title="PDF Footnote Processor",
+            page_icon=icon_manager.get_page_icon(),
+            layout="wide"
+        )
+
+        # Header with GIF and title
+        col1, col2 = st.columns([4, 1])
+        
+        with col1:
+            st.markdown(
+                f"""
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    {icon_manager.get_html_img(size=40)}
+                    <h1 class="animate-slide-in" style="margin: 0;">
+                        PDF Footnote Processor
+                    </h1>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        
+        with col2:
+            theme_icon = "🌙" if st.session_state.theme == "light" else "☀️"
+            if st.button(f"{theme_icon} Theme", key="theme_toggle"):
+                toggle_theme()
+                st.rerun()
+
+    except FileNotFoundError:
+        # Fallback to emoji if GIF not found
+        st.set_page_config(
+            page_title="PDF Footnote Processor",
+            page_icon="📑",
+            layout="wide"
+        )
+        st.error("Custom icon not found. Using default icon.")
 
 def get_theme_css():
     """Enhanced CSS with animations and hover effects"""
@@ -337,7 +426,7 @@ def main():
     # Set page config with custom icon
     st.set_page_config(
         page_title="PDF Footnote Processor",
-        page_icon="📑",  # Using a different PDF-related emoji
+        page_icon="",  # Using a different PDF-related emoji
         layout="wide"
     )
 

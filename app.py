@@ -1,9 +1,9 @@
 import streamlit as st
 import tempfile
-import time
-import base64
 import os
 import logging
+import time
+import base64
 from pathlib import Path
 import pandas as pd
 import fitz  # PyMuPDF
@@ -277,11 +277,13 @@ def get_theme_css():
             }}
         </style>
         """
+def toggle_theme():
+    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
+
 def auto_download(excel_data, filename):
     """Create auto-download functionality using JavaScript"""
     b64 = base64.b64encode(excel_data).decode()
     
-    # Create the JavaScript auto-download
     auto_download_js = f"""
         <script>
             function downloadFile() {{
@@ -304,87 +306,6 @@ def auto_download(excel_data, filename):
     """
     
     return auto_download_js
-
-# Replace the existing download section in your main() function with this:
-if excel_path and os.path.exists(excel_path):
-    df = pd.read_excel(excel_path)
-    
-    # Success message with animation
-    st.markdown("""
-        <div class="animate-slide-in" style="margin: 1rem 0;">
-            <div style="padding: 1rem; background-color: #d1e7dd; color: #0f5132; border-radius: 0.5rem;">
-                ✅ PDF processed successfully!
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Preview Card
-    st.markdown("""
-        <div class="animate-fade-in">
-            <h3 style="font-size: 1.3rem; font-weight: 600; margin: 1rem 0;">
-                Preview of Processed Content
-            </h3>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.dataframe(
-        df.head(10),
-        use_container_width=True,
-        hide_index=True
-    )
-    
-    # Read excel file and prepare for download
-    with open(excel_path, "rb") as file:
-        excel_data = file.read()
-        output_filename = f"{uploaded_file.name.replace('.pdf', '_processed.xlsx')}"
-        
-        # Manual download button
-        st.download_button(
-            label="📥 Download Excel File",
-            data=excel_data,
-            file_name=output_filename,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key='manual_download'
-        )
-        
-        # Add auto-download functionality
-        st.markdown(auto_download(excel_data, output_filename), unsafe_allow_html=True)
-        
-        # Add download status message
-        st.markdown("""
-            <div style="margin-top: 1rem; padding: 0.8rem; background-color: #e7f3fe; color: #0c5460; border-radius: 0.5rem;">
-                💡 Your file will automatically download in 3 seconds if not downloaded manually.
-            </div>
-        """, unsafe_allow_html=True)
-        
-    # Add countdown timer (optional)
-    countdown_placeholder = st.empty()
-    for i in range(3, 0, -1):
-        countdown_placeholder.markdown(f"""
-            <div style="text-align: center; color: #666;">
-                Auto-download in {i} seconds...
-            </div>
-        """, unsafe_allow_html=True)
-        time.sleep(1)
-    countdown_placeholder.empty()
-def create_custom_card(title, content, theme):
-    """Create a custom styled card"""
-    bg_color = "#2D2D2D" if theme == "dark" else "#F8F9FA"
-    text_color = "#FFFFFF" if theme == "dark" else "#000000"
-    border_color = "#404040" if theme == "dark" else "#E9ECEF"
-    
-    return f"""
-    <div class="custom-card animate-fade-in" 
-         style="background-color: {bg_color}; color: {text_color}; border: 1px solid {border_color};">
-        <h3 style="color: {text_color}; margin-bottom: 1rem;">{title}</h3>
-        {content}
-    </div>
-    """
-    
-
-def toggle_theme():
-    """Toggle between light and dark theme"""
-    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
 
 def save_uploaded_file(uploaded_file):
     """Save uploaded file to temporary directory and return the path"""
@@ -413,26 +334,21 @@ def process_pdf(file_path):
         return None
 
 def main():
-    # Set page config
+    # Set page config with custom icon
     st.set_page_config(
         page_title="PDF Footnote Processor",
-        page_icon="📄",
-        layout="wide",
-        initial_sidebar_state="collapsed"
+        page_icon="📑",  # Using a different PDF-related emoji
+        layout="wide"
     )
 
     # Inject custom CSS
     st.markdown(get_theme_css(), unsafe_allow_html=True)
 
-    # Header with animated title
+    # Header with theme toggle
     col1, col2 = st.columns([4, 1])
     
     with col1:
-        st.markdown("""
-            <div class="animate-slide-in">
-                <h1 style="font-size: 2.5rem; font-weight: 700;">📄 PDF Footnote Processor</h1>
-            </div>
-        """, unsafe_allow_html=True)
+        st.title("📑 PDF Footnote Processor")
     
     with col2:
         theme_icon = "🌙" if st.session_state.theme == "light" else "☀️"
@@ -440,97 +356,77 @@ def main():
             toggle_theme()
             st.rerun()
 
-    # Introduction Card
-    intro_content = """
-    <p style="font-size: 1.1rem; line-height: 1.6;">
-        Transform your PDF documents with our advanced footnote processing tool.
-        Upload your PDF and get an organized Excel file with extracted content and footnotes.
-    </p>
-    <div style="margin-top: 1rem;">
-        <h4 style="font-weight: 600;">Key Features:</h4>
-        <ul style="list-style-type: none; padding-left: 0;">
-            <li style="margin: 0.5rem 0;">✨ Automatic footnote detection and extraction</li>
-            <li style="margin: 0.5rem 0;">📝 Maintains text formatting and structure</li>
-            <li style="margin: 0.5rem 0;">📊 Generates formatted Excel output</li>
-        </ul>
-    </div>
-    """
-    st.markdown(create_custom_card("Welcome", intro_content, st.session_state.theme), unsafe_allow_html=True)
-
-    # File Upload Section
+    # Application description
     st.markdown("""
-        <div class="animate-fade-in" style="margin-top: 2rem;">
-            <h2 style="font-size: 1.5rem; font-weight: 600;">Upload Your PDF</h2>
-        </div>
-    """, unsafe_allow_html=True)
+    This application processes PDF documents and extracts content with footnotes into an organized Excel file.
     
+    ### Features:
+    - Detects and extracts footnotes automatically
+    - Maintains text formatting and structure
+    - Generates formatted Excel output
+    """)
+
+    # File uploader
     uploaded_file = st.file_uploader(
-        "Choose a PDF file",
+        "Upload your PDF file",
         type=['pdf'],
         help="Upload a PDF file to process"
     )
 
     if uploaded_file:
-        # File Details Card
+        # Display file info
+        st.write("File Details:")
         file_details = {
-            "📄 Filename": uploaded_file.name,
-            "📦 Size": f"{uploaded_file.size / 1024:.2f} KB",
-            "📋 Type": uploaded_file.type
+            "Filename": uploaded_file.name,
+            "File size": f"{uploaded_file.size / 1024:.2f} KB",
+            "File type": uploaded_file.type
         }
-        
-        details_content = "".join([
-            f"<div style='display: flex; align-items: center; margin: 0.5rem 0;'>"
-            f"<span style='font-weight: 500; margin-right: 1rem;'>{key}:</span>"
-            f"<span>{value}</span></div>"
-            for key, value in file_details.items()
-        ])
-        
-        st.markdown(create_custom_card("File Details", details_content, st.session_state.theme), unsafe_allow_html=True)
+        for key, value in file_details.items():
+            st.write(f"- {key}: {value}")
 
-        # Process Button with enhanced styling
-        if st.button("🚀 Process PDF", type="primary"):
-            with st.spinner("📊 Processing your PDF..."):
+        # Process button
+        if st.button("Process PDF", type="primary"):
+            with st.spinner("Processing PDF... This may take a few moments."):
                 try:
+                    # Save and process file
                     temp_path = save_uploaded_file(uploaded_file)
                     if temp_path:
                         excel_path = process_pdf(temp_path)
                         
                         if excel_path and os.path.exists(excel_path):
+                            # Read the Excel file
                             df = pd.read_excel(excel_path)
                             
-                            # Success message with animation
-                            st.markdown("""
-                                <div class="animate-slide-in" style="margin: 1rem 0;">
-                                    <div style="padding: 1rem; background-color: #d1e7dd; color: #0f5132; border-radius: 0.5rem;">
-                                        ✅ PDF processed successfully!
-                                    </div>
-                                </div>
-                            """, unsafe_allow_html=True)
+                            # Success message
+                            st.success("✅ PDF processed successfully!")
                             
-                            # Preview Card
-                            st.markdown("""
-                                <div class="animate-fade-in">
-                                    <h3 style="font-size: 1.3rem; font-weight: 600; margin: 1rem 0;">
-                                        Preview of Processed Content
-                                    </h3>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            
+                            # Preview section
+                            st.subheader("Preview of Processed Content")
                             st.dataframe(
                                 df.head(10),
                                 use_container_width=True,
                                 hide_index=True
                             )
                             
-                            # Download button with custom styling
+                            # Read excel file for download
                             with open(excel_path, "rb") as file:
                                 excel_data = file.read()
+                                output_filename = f"{uploaded_file.name.replace('.pdf', '_processed.xlsx')}"
+                                
+                                # Manual download button
                                 st.download_button(
                                     label="📥 Download Excel File",
                                     data=excel_data,
-                                    file_name=f"{uploaded_file.name.replace('.pdf', '_processed.xlsx')}",
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    file_name=output_filename,
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    key='manual_download'
                                 )
+                                
+                                # Add auto-download functionality
+                                st.markdown(auto_download(excel_data, output_filename), unsafe_allow_html=True)
+                                
+                                # Add download status message
+                                st.info("💡 Your file will automatically download in 3 seconds if not downloaded manually.")
                             
                             # Cleanup
                             try:
@@ -540,23 +436,19 @@ def main():
                                 logger.error(f"Error cleaning up temporary files: {str(e)}")
                 
                 except Exception as e:
-                    st.error(f"❌ An error occurred during processing: {str(e)}")
+                    st.error(f"An error occurred during processing: {str(e)}")
                     logger.error(f"Processing error: {str(e)}")
 
-    # Instructions Card
-    instructions_content = """
-    <ol style="list-style-type: none; padding-left: 0;">
-        <li style="margin: 0.8rem 0;">1️⃣ Upload your PDF file using the uploader above</li>
-        <li style="margin: 0.8rem 0;">2️⃣ Click the "Process PDF" button to start processing</li>
-        <li style="margin: 0.8rem 0;">3️⃣ Preview the results and download your Excel file</li>
-    </ol>
-    <div style="margin-top: 1rem; padding: 0.8rem; background-color: rgba(255, 255, 255, 0.1); border-radius: 0.5rem;">
-        <p style="margin: 0;">
-            <strong>Note:</strong> Large PDF files may take longer to process. Please be patient.
-        </p>
-    </div>
-    """
-    st.markdown(create_custom_card("Instructions", instructions_content, st.session_state.theme), unsafe_allow_html=True)
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    ### Instructions:
+    1. Upload your PDF file using the file uploader above
+    2. Click the "Process PDF" button to start processing
+    3. Preview the results and download the Excel file
+    
+    > Note: Large PDF files may take longer to process. Please be patient.
+    """)
 
 if __name__ == "__main__":
     main()

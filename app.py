@@ -17,6 +17,32 @@ logger = logging.getLogger(__name__)
 if 'theme' not in st.session_state:
     st.session_state.theme = "light"
 
+def save_uploaded_file(uploaded_file):
+    """Save uploaded file to temporary directory and return the path"""
+    try:
+        temp_dir = Path("temp")
+        temp_dir.mkdir(exist_ok=True)
+        temp_path = temp_dir / uploaded_file.name
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        return str(temp_path)
+    except Exception as e:
+        st.error(f"Error saving uploaded file: {str(e)}")
+        logger.error(f"File save error: {str(e)}")
+        return None
+
+def process_pdf(file_path):
+    """Process the PDF file and return the path to the Excel output"""
+    try:
+        processor = PDFProcessor()
+        processor.process_pdf(file_path)
+        excel_path = file_path.replace('.pdf', '_Final.xlsx')
+        return excel_path
+    except Exception as e:
+        st.error(f"Error processing PDF: {str(e)}")
+        logger.error(f"Processing error: {str(e)}")
+        return None
+
 def get_base64_of_file(file_path):
     """Get base64 encoded version of a local file"""
     return base64.b64encode(Path(file_path).read_bytes()).decode()
@@ -159,6 +185,7 @@ def create_title_with_gif():
         </div>
         """
     return '<h1 class="main-title">PDF Footnote Processor</h1>'
+
 def create_auto_download_button(excel_data, filename):
     """Create auto-download button with enhanced UI"""
     b64 = base64.b64encode(excel_data).decode()

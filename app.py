@@ -398,7 +398,7 @@ def main():
                                         key='manual_download',
                                         on_click=lambda: st.session_state.update({'manual_download': True})
                                     )
-st.markdown(create_auto_download_button(excel_data, output_filename), unsafe_allow_html=True)
+                                    st.markdown(create_auto_download_button(excel_data, output_filename), unsafe_allow_html=True)
                             
                             try:
                                 os.remove(temp_path)

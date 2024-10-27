@@ -2,8 +2,11 @@
 *Personal Project | GitHub*
 
 Developed a web application that processes PDF documents to extract and organize footnotes into structured Excel files.
-![Alt text for image](assets/website.png)
-![Alt text for image](assets/working.jpg)
+[Visit the PDF Processing App](https://pdf-proceappr-app-jxybczrguea2egjbmrk6yh.streamlit.app/)
+
+<img src="assets/website.png" alt="Project Screenshot" width="600"/>
+<img src="assets/working.jpg" alt="Project Screenshot" width="600"/>
+
 
 **Technical Stack:**
 - **Backend:** Python, Streamlit, PyMuPDF, Pandas

@@ -417,7 +417,7 @@ def main():
     st.markdown(f"""
         <div style="margin-top: 4rem; text-align: center; opacity: 0.7;">
             <p style="color: {footer_color} !important;">
-                Made with ❤️ for PDF processing
+                Made with ❤️ for PDF processing by Laxman
             </p>
         </div>
     """, unsafe_allow_html=True)

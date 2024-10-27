@@ -437,7 +437,7 @@ def main():
     col1, col2 = st.columns([4, 1])
     
     with col1:
-        st.title("PDF Footnote Processor📥જ⁀➴🚀")
+        st.title("PDF Footnote Processor📥➴🚀")
     
     with col2:
         theme_icon = "🌙" if st.session_state.theme == "light" else "☀️"

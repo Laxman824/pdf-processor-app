@@ -128,10 +128,8 @@ def get_theme_css():
     }
     """
 
-# Update the dark theme section in get_theme_css() function
-
-if st.session_state.theme == "dark":
-    return f"""
+    if st.session_state.theme == "dark":
+        return f"""
         <style>
             {base_styles}
             .stApp {{
@@ -161,73 +159,19 @@ if st.session_state.theme == "dark":
             [data-testid="stMarkdown"] {{
                 color: #FFFFFF !important;
             }}
-            .stTextInput input {{
-                color: #FFFFFF !important;
-                background-color: #2D2D2D !important;
-            }}
-            .stSelectbox select {{
-                color: #FFFFFF !important;
-                background-color: #2D2D2D !important;
-            }}
-            .stDataFrame {{
+            .element-container {{
                 color: #FFFFFF !important;
             }}
-            .stDataFrame td {{
+            div.stMarkdown p {{
                 color: #FFFFFF !important;
             }}
-            .stDataFrame th {{
-                color: #FFFFFF !important;
-            }}
-            div[data-testid="stTable"] {{
-                color: #FFFFFF !important;
-            }}
-            .stAlert {{
-                background-color: #2D2D2D !important;
-                color: #FFFFFF !important;
-            }}
-            p {{
-                color: #FFFFFF !important;
-            }}
-            h1, h2, h3, h4, h5, h6 {{
+            div.stMarkdown span {{
                 color: #FFFFFF !important;
             }}
             .css-183lzff {{
                 color: #FFFFFF !important;
             }}
             .css-10trblm {{
-                color: #FFFFFF !important;
-            }}
-            .css-1p1nwyz {{
-                color: #FFFFFF !important;
-            }}
-            label {{
-                color: #FFFFFF !important;
-            }}
-            .stSpinner {{
-                color: #FFFFFF !important;
-            }}
-            .stProgress {{
-                color: #FFFFFF !important;
-            }}
-            .stInfoAlert {{
-                background-color: rgba(32, 156, 238, 0.2) !important;
-                color: #FFFFFF !important;
-            }}
-            .stSuccessAlert {{
-                background-color: rgba(46, 160, 67, 0.2) !important;
-                color: #FFFFFF !important;
-            }}
-            .stErrorAlert {{
-                background-color: rgba(255, 76, 76, 0.2) !important;
-                color: #FFFFFF !important;
-            }}
-            small {{
-                color: #B0B0B0 !important;
-            }}
-            .stButton button {{
-                border-color: #404040 !important;
-            }}
-            .element-container {{
                 color: #FFFFFF !important;
             }}
             .uploadedFile {{
@@ -239,45 +183,91 @@ if st.session_state.theme == "dark":
             .css-1vbkxwb {{
                 color: #FFFFFF !important;
             }}
-            
-            /* File uploader specific styles */
-            .stFileUploader div[data-testid="stMarkdownContainer"] {{
+            .stDataFrame {{
                 color: #FFFFFF !important;
             }}
-            .stFileUploader small {{
+            .stDataFrame td {{
+                color: #FFFFFF !important;
+            }}
+            .stDataFrame th {{
+                color: #FFFFFF !important;
+                background-color: #404040 !important;
+            }}
+            .stAlert {{
+                color: #FFFFFF !important;
+            }}
+            small {{
                 color: #B0B0B0 !important;
             }}
-            
-            /* Success/Info/Error message adjustments */
-            .stSuccess {{
-                background-color: rgba(46, 160, 67, 0.2) !important;
-                color: #FFFFFF !important;
+        </style>
+        """
+    else:
+        return f"""
+        <style>
+            {base_styles}
+            .stApp {{
+                background-color: #FFFFFF;
+                color: #000000;
             }}
-            .stInfo {{
-                background-color: rgba(32, 156, 238, 0.2) !important;
-                color: #FFFFFF !important;
+            .feature-card {{
+                background-color: #F8F9FA;
+                border: 1px solid #E9ECEF;
             }}
-            .stError {{
-                background-color: rgba(255, 76, 76, 0.2) !important;
-                color: #FFFFFF !important;
+            .upload-section {{
+                background-color: #F8F9FA;
+                border: 2px dashed #DEE2E6;
+            }}
+            [data-testid="stFileUploader"] {{
+                background-color: #F8F9FA !important;
             }}
         </style>
+        """
+
+def create_feature_cards():
+    """Create feature cards with theme-aware styling"""
+    text_color = "#FFFFFF" if st.session_state.theme == "dark" else "#000000"
+    return f"""
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
+            <div class="feature-card">
+                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: {text_color} !important;">
+                    📝 Automatic Detection
+                </h3>
+                <p style="color: {text_color} !important;">
+                    Smart footnote detection and extraction from your PDF documents.
+                </p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: {text_color} !important;">
+                    🎯 Precise Formatting
+                </h3>
+                <p style="color: {text_color} !important;">
+                    Maintains original text structure and formatting integrity.
+                </p>
+            </div>
+            <div class="feature-card">
+                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: {text_color} !important;">
+                    📊 Excel Export
+                </h3>
+                <p style="color: {text_color} !important;">
+                    Organized output in Excel format for easy analysis.
+                </p>
+            </div>
+        </div>
     """
 
-def create_title_with_gif():
-    """Create animated title with PDF GIF"""
-    gif_path = "assets/pdf.gif"
-    if os.path.exists(gif_path):
-        gif_base64 = get_base64_of_file(gif_path)
-        return f"""
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 2rem;">
-            <h1 class="main-title">PDF Footnote Processor</h1>
-            <img src="data:image/gif;base64,{gif_base64}" 
-                 class="pdf-gif"
-                 style="width: 60px; height: 60px; object-fit: contain;">
+def create_file_details_card(uploaded_file):
+    """Create file details card with theme-aware styling"""
+    text_color = "#FFFFFF" if st.session_state.theme == "dark" else "#000000"
+    return f"""
+        <div class="feature-card">
+            <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; color: {text_color} !important;">
+                📄 File Details
+            </h3>
+            <p style="color: {text_color} !important;">Filename: {uploaded_file.name}</p>
+            <p style="color: {text_color} !important;">Size: {uploaded_file.size / 1024:.2f} KB</p>
+            <p style="color: {text_color} !important;">Type: {uploaded_file.type}</p>
         </div>
-        """
-    return '<h1 class="main-title">PDF Footnote Processor</h1>'
+    """
 
 def create_auto_download_button(excel_data, filename):
     """Create auto-download button with enhanced UI"""
@@ -295,7 +285,6 @@ def create_auto_download_button(excel_data, filename):
                     link.click();
                     document.body.removeChild(link);
                     
-                    // Show notification
                     const notification = document.createElement('div');
                     notification.innerHTML = `
                         <div style="
@@ -331,7 +320,19 @@ def main():
     st.markdown(get_theme_css(), unsafe_allow_html=True)
     
     # Title with GIF
-    st.markdown(create_title_with_gif(), unsafe_allow_html=True)
+    gif_path = "assets/pdf.gif"
+    if os.path.exists(gif_path):
+        gif_base64 = get_base64_of_file(gif_path)
+        st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 2rem;">
+                <h1 class="main-title">PDF Footnote Processor</h1>
+                <img src="data:image/gif;base64,{gif_base64}" 
+                     class="pdf-gif"
+                     style="width: 60px; height: 60px; object-fit: contain;">
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown('<h1 class="main-title">PDF Footnote Processor</h1>', unsafe_allow_html=True)
     
     # Theme toggle
     col1, col2 = st.columns([6, 1])
@@ -342,22 +343,7 @@ def main():
             st.rerun()
 
     # Feature cards
-    st.markdown("""
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
-            <div class="feature-card">
-                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">📝 Automatic Detection</h3>
-                <p>Smart footnote detection and extraction from your PDF documents.</p>
-            </div>
-            <div class="feature-card">
-                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">🎯 Precise Formatting</h3>
-                <p>Maintains original text structure and formatting integrity.</p>
-            </div>
-            <div class="feature-card">
-                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">📊 Excel Export</h3>
-                <p>Organized output in Excel format for easy analysis.</p>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(create_feature_cards(), unsafe_allow_html=True)
 
     # Upload section
     st.markdown('<div class="upload-section">', unsafe_allow_html=True)
@@ -368,17 +354,8 @@ def main():
     )
 
     if uploaded_file:
-        # File details card
-        st.markdown(f"""
-            <div class="feature-card">
-                <h3 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">📄 File Details</h3>
-                <p>Filename: {uploaded_file.name}</p>
-                <p>Size: {uploaded_file.size / 1024:.2f} KB</p>
-                <p>Type: {uploaded_file.type}</p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(create_file_details_card(uploaded_file), unsafe_allow_html=True)
 
-        # Process button
         if st.button("🚀 Process PDF", type="primary"):
             with st.spinner("Processing your PDF... Please wait"):
                 try:
@@ -421,8 +398,7 @@ def main():
                                         key='manual_download',
                                         on_click=lambda: st.session_state.update({'manual_download': True})
                                     )
-                                
-                                st.markdown(create_auto_download_button(excel_data, output_filename), unsafe_allow_html=True)
+st.markdown(create_auto_download_button(excel_data, output_filename), unsafe_allow_html=True)
                             
                             try:
                                 os.remove(temp_path)
@@ -436,11 +412,35 @@ def main():
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Footer
-    st.markdown("""
+    # Footer with theme-aware styling
+    footer_color = "#FFFFFF" if st.session_state.theme == "dark" else "#000000"
+    st.markdown(f"""
         <div style="margin-top: 4rem; text-align: center; opacity: 0.7;">
-            <p>Made with ❤️ for PDF processing by Laxman</p>
+            <p style="color: {footer_color} !important;">
+                Made with ❤️ for PDF processing
+            </p>
         </div>
+    """, unsafe_allow_html=True)
+
+    # Add custom JavaScript for smooth transitions
+    st.markdown("""
+        <script>
+            document.addEventListener('DOMContentLoaded', (event) => {
+                // Add smooth transitions to all elements
+                document.body.style.transition = 'all 0.3s ease';
+                
+                // Add hover effects to buttons
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(button => {
+                    button.addEventListener('mouseover', () => {
+                        button.style.transform = 'translateY(-2px)';
+                    });
+                    button.addEventListener('mouseout', () => {
+                        button.style.transform = 'translateY(0)';
+                    });
+                });
+            });
+        </script>
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":

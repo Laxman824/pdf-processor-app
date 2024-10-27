@@ -101,7 +101,7 @@ def main():
         # Fallback to emoji if GIF not found
         st.set_page_config(
             page_title="PDF Footnote Processor",
-            page_icon="📑🚀",
+            page_icon="📥જ⁀➴🚀",
             layout="wide"
         )
         st.error("Custom icon not found. Using default icon.")
@@ -437,7 +437,7 @@ def main():
     col1, col2 = st.columns([4, 1])
     
     with col1:
-        st.title("📑 PDF Footnote Processor")
+        st.title("PDF Footnote Processor📥જ⁀➴🚀"")
     
     with col2:
         theme_icon = "🌙" if st.session_state.theme == "light" else "☀️"

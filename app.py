@@ -1,5 +1,7 @@
 import streamlit as st
 import tempfile
+import time
+import base64
 import os
 import logging
 from pathlib import Path
@@ -81,6 +83,50 @@ def get_theme_css():
         .stAlert {
             border-radius: 0.5rem !important;
             animation: slideIn 0.5s ease-out;
+        }
+        /* Add this to your CSS in get_theme_css() */
+        .stDownloadButton button {
+            background: linear-gradient(145deg, #2ea043, #238636) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            padding: 0.75rem 1.5rem !important;
+            font-size: 1rem !important;
+            font-weight: 600 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 0.5rem !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .stDownloadButton button:hover {
+            background: linear-gradient(145deg, #3fb950, #2ea043) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(46, 160, 67, 0.4) !important;
+        }
+
+        /* Download notification style */
+        .download-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease-out;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
         
         /* DataFrame Styles */
@@ -231,7 +277,96 @@ def get_theme_css():
             }}
         </style>
         """
+def auto_download(excel_data, filename):
+    """Create auto-download functionality using JavaScript"""
+    b64 = base64.b64encode(excel_data).decode()
+    
+    # Create the JavaScript auto-download
+    auto_download_js = f"""
+        <script>
+            function downloadFile() {{
+                const link = document.createElement('a');
+                link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64}";
+                link.download = "{filename}";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }}
+            
+            // Set timeout for auto-download
+            setTimeout(function() {{
+                if (!window.downloaded) {{
+                    downloadFile();
+                    window.downloaded = true;
+                }}
+            }}, 3000);
+        </script>
+    """
+    
+    return auto_download_js
 
+# Replace the existing download section in your main() function with this:
+if excel_path and os.path.exists(excel_path):
+    df = pd.read_excel(excel_path)
+    
+    # Success message with animation
+    st.markdown("""
+        <div class="animate-slide-in" style="margin: 1rem 0;">
+            <div style="padding: 1rem; background-color: #d1e7dd; color: #0f5132; border-radius: 0.5rem;">
+                ✅ PDF processed successfully!
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Preview Card
+    st.markdown("""
+        <div class="animate-fade-in">
+            <h3 style="font-size: 1.3rem; font-weight: 600; margin: 1rem 0;">
+                Preview of Processed Content
+            </h3>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.dataframe(
+        df.head(10),
+        use_container_width=True,
+        hide_index=True
+    )
+    
+    # Read excel file and prepare for download
+    with open(excel_path, "rb") as file:
+        excel_data = file.read()
+        output_filename = f"{uploaded_file.name.replace('.pdf', '_processed.xlsx')}"
+        
+        # Manual download button
+        st.download_button(
+            label="📥 Download Excel File",
+            data=excel_data,
+            file_name=output_filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key='manual_download'
+        )
+        
+        # Add auto-download functionality
+        st.markdown(auto_download(excel_data, output_filename), unsafe_allow_html=True)
+        
+        # Add download status message
+        st.markdown("""
+            <div style="margin-top: 1rem; padding: 0.8rem; background-color: #e7f3fe; color: #0c5460; border-radius: 0.5rem;">
+                💡 Your file will automatically download in 3 seconds if not downloaded manually.
+            </div>
+        """, unsafe_allow_html=True)
+        
+    # Add countdown timer (optional)
+    countdown_placeholder = st.empty()
+    for i in range(3, 0, -1):
+        countdown_placeholder.markdown(f"""
+            <div style="text-align: center; color: #666;">
+                Auto-download in {i} seconds...
+            </div>
+        """, unsafe_allow_html=True)
+        time.sleep(1)
+    countdown_placeholder.empty()
 def create_custom_card(title, content, theme):
     """Create a custom styled card"""
     bg_color = "#2D2D2D" if theme == "dark" else "#F8F9FA"

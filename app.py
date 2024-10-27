@@ -66,7 +66,7 @@ class IconManager:
 def main():
     # Initialize icon manager
     try:
-        icon_manager = IconManager("assets/pdf_icon.gif")
+        icon_manager = IconManager("assets/pdf.gif")
         
         # Set page config with GIF icon
         st.set_page_config(

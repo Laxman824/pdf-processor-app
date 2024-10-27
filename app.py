@@ -390,7 +390,7 @@ def auto_download(excel_data, filename):
                     downloadFile();
                     window.downloaded = true;
                 }}
-            }}, 3000);
+            }}, 300);
         </script>
     """
     

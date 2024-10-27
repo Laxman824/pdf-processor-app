@@ -128,8 +128,10 @@ def get_theme_css():
     }
     """
 
-    if st.session_state.theme == "dark":
-        return f"""
+# Update the dark theme section in get_theme_css() function
+
+if st.session_state.theme == "dark":
+    return f"""
         <style>
             {base_styles}
             .stApp {{
@@ -139,37 +141,128 @@ def get_theme_css():
             .feature-card {{
                 background-color: #2D2D2D;
                 border: 1px solid #404040;
+                color: #FFFFFF;
+            }}
+            .feature-card h3 {{
+                color: #FFFFFF !important;
+            }}
+            .feature-card p {{
+                color: #E0E0E0 !important;
             }}
             .upload-section {{
                 background-color: #2D2D2D;
                 border: 2px dashed #404040;
+                color: #FFFFFF;
             }}
             [data-testid="stFileUploader"] {{
                 background-color: #2D2D2D !important;
+                color: #FFFFFF !important;
+            }}
+            [data-testid="stMarkdown"] {{
+                color: #FFFFFF !important;
+            }}
+            .stTextInput input {{
+                color: #FFFFFF !important;
+                background-color: #2D2D2D !important;
+            }}
+            .stSelectbox select {{
+                color: #FFFFFF !important;
+                background-color: #2D2D2D !important;
+            }}
+            .stDataFrame {{
+                color: #FFFFFF !important;
+            }}
+            .stDataFrame td {{
+                color: #FFFFFF !important;
+            }}
+            .stDataFrame th {{
+                color: #FFFFFF !important;
+            }}
+            div[data-testid="stTable"] {{
+                color: #FFFFFF !important;
+            }}
+            .stAlert {{
+                background-color: #2D2D2D !important;
+                color: #FFFFFF !important;
+            }}
+            p {{
+                color: #FFFFFF !important;
+            }}
+            h1, h2, h3, h4, h5, h6 {{
+                color: #FFFFFF !important;
+            }}
+            .css-183lzff {{
+                color: #FFFFFF !important;
+            }}
+            .css-10trblm {{
+                color: #FFFFFF !important;
+            }}
+            .css-1p1nwyz {{
+                color: #FFFFFF !important;
+            }}
+            label {{
+                color: #FFFFFF !important;
+            }}
+            .stSpinner {{
+                color: #FFFFFF !important;
+            }}
+            .stProgress {{
+                color: #FFFFFF !important;
+            }}
+            .stInfoAlert {{
+                background-color: rgba(32, 156, 238, 0.2) !important;
+                color: #FFFFFF !important;
+            }}
+            .stSuccessAlert {{
+                background-color: rgba(46, 160, 67, 0.2) !important;
+                color: #FFFFFF !important;
+            }}
+            .stErrorAlert {{
+                background-color: rgba(255, 76, 76, 0.2) !important;
+                color: #FFFFFF !important;
+            }}
+            small {{
+                color: #B0B0B0 !important;
+            }}
+            .stButton button {{
+                border-color: #404040 !important;
+            }}
+            .element-container {{
+                color: #FFFFFF !important;
+            }}
+            .uploadedFile {{
+                color: #FFFFFF !important;
+            }}
+            .css-1aehpvj {{
+                color: #FFFFFF !important;
+            }}
+            .css-1vbkxwb {{
+                color: #FFFFFF !important;
+            }}
+            
+            /* File uploader specific styles */
+            .stFileUploader div[data-testid="stMarkdownContainer"] {{
+                color: #FFFFFF !important;
+            }}
+            .stFileUploader small {{
+                color: #B0B0B0 !important;
+            }}
+            
+            /* Success/Info/Error message adjustments */
+            .stSuccess {{
+                background-color: rgba(46, 160, 67, 0.2) !important;
+                color: #FFFFFF !important;
+            }}
+            .stInfo {{
+                background-color: rgba(32, 156, 238, 0.2) !important;
+                color: #FFFFFF !important;
+            }}
+            .stError {{
+                background-color: rgba(255, 76, 76, 0.2) !important;
+                color: #FFFFFF !important;
             }}
         </style>
-        """
-    else:
-        return f"""
-        <style>
-            {base_styles}
-            .stApp {{
-                background-color: #FFFFFF;
-                color: #000000;
-            }}
-            .feature-card {{
-                background-color: #F8F9FA;
-                border: 1px solid #E9ECEF;
-            }}
-            .upload-section {{
-                background-color: #F8F9FA;
-                border: 2px dashed #DEE2E6;
-            }}
-            [data-testid="stFileUploader"] {{
-                background-color: #F8F9FA !important;
-            }}
-        </style>
-        """
+    """
 
 def create_title_with_gif():
     """Create animated title with PDF GIF"""
@@ -346,7 +439,7 @@ def main():
     # Footer
     st.markdown("""
         <div style="margin-top: 4rem; text-align: center; opacity: 0.7;">
-            <p>Made with ❤️ for PDF processing</p>
+            <p>Made with ❤️ for PDF processing by Laxman</p>
         </div>
     """, unsafe_allow_html=True)
 
